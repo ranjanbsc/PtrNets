@@ -1,6 +1,7 @@
 import sys
 import gzip
-import cPickle
+#import cPickle
+import _pickle as cPickle
 import numpy
 from scipy.spatial import ConvexHull
 
@@ -24,9 +25,12 @@ def generate_examples(num, n_min, n_max):
 
 if __name__ == '__main__':
     # planar convex hull
-    e_train = generate_examples(1048576, 5, 50)
-    e_valid = generate_examples(1000, 5, 50)
-    e_test = generate_examples(1000, 50, 50)
+    #e_train = generate_examples(1048576, 5, 50)
+    #e_valid = generate_examples(1000, 5, 50)
+    #e_test = generate_examples(1000, 50, 50)
+    e_train = generate_examples(1000, 5, 50)
+    e_valid = generate_examples(100, 5, 50)
+    e_test = generate_examples(100, 50, 50)    
     obj = (e_train, e_valid, e_test)
     saveto = sys.argv[1]
     if saveto.endswith('.gz'):
