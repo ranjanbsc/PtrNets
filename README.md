@@ -45,6 +45,9 @@ This will generate the training data, add the data path to ptrnets.py (or change
 * Oriol Vinyals, Meire Fortunato, Navdeep Jaitly,
   "[Pointer Networks](http://arxiv.org/abs/1506.03134)",
   *arXiv:1506.03134 [stat.ML]*.
+
+
+
 #######################################################################################
 #######################################################################################
 #######################################################################################
