@@ -1,4 +1,5 @@
-import cPickle
+#import cPickle
+import _pickle as cPickle
 import gzip
 import os
 import sys
