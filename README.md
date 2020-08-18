@@ -3,11 +3,18 @@
 This has been forked from https://github.com/vshallc/PtrNets and modified to run in google colab.
 
 Step1: Create dataset for convex hull
+
 !git clone https://github.com/vshallc/PtrNets.git
+
+
 cd /content/PtrNets/pointer/
+
 !python misc/convex_hull.py ch.pkl.gz
 
+
 Step2: Run ponternet program like below
+
+
 !python ptrnets.py ch '/content/PtrNets/pointer/ch.pkl.gz' '/content/PtrNets/pointer/'
 
 #######################################################################################
