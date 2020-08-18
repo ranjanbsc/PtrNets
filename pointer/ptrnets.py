@@ -1,5 +1,6 @@
 from collections import OrderedDict
-import cPickle as pkl
+#import cPickle as pkl
+import _pickle as pkl
 import sys
 import time
 import argparse
@@ -54,7 +55,8 @@ def zipp(params, tparams):
     """
     When we reload the model. Needed for the GPU stuff.
     """
-    for kk, vv in params.iteritems():
+    #for kk, vv in params.iteritems():
+    for kk, vv in params.items():
         tparams[kk].set_value(vv)
 
 
@@ -63,7 +65,8 @@ def unzip(zipped):
     When we pickle the model. Needed for the GPU stuff.
     """
     new_params = OrderedDict()
-    for kk, vv in zipped.iteritems():
+    #for kk, vv in zipped.iteritems():
+    for kk, vv in zipped.items():
         new_params[kk] = vv.get_value()
     return new_params
 
@@ -144,7 +147,8 @@ def init_params(options):
 
 def load_params(path, params):
     pp = numpy.load(path)
-    for kk, vv in params.iteritems():
+    #for kk, vv in params.iteritems():
+    for kk, vv in params.items():
         if kk not in pp:
             raise Warning('%s is not in the archive' % kk)
         params[kk] = pp[kk]
@@ -154,7 +158,8 @@ def load_params(path, params):
 
 def init_tparams(params):
     tparams = OrderedDict()
-    for kk, pp in params.iteritems():
+    #for kk, pp in params.iteritems():
+    for kk, pp in params.items():
         tparams[kk] = theano.shared(params[kk], name=kk)
     return tparams
 
@@ -169,7 +174,7 @@ def sgd(lr, tparams, grads, p, p_mask, x, x_mask, y, y_mask, cost):
     # New set of shared variable that will contain the gradient
     # for a mini-batch.
     gshared = [theano.shared(v.get_value() * 0., name='%s_grad' % k)
-               for k, v in tparams.iteritems()]
+               for k, v in tparams.items()]
     gsup = [(gs, g) for gs, g in zip(gshared, grads)]
 
     # Function that computes gradients for a mini-batch, but do not
@@ -188,11 +193,11 @@ def sgd(lr, tparams, grads, p, p_mask, x, x_mask, y, y_mask, cost):
 
 def rmsprop(lr, tparams, grads, p, p_mask, x, x_mask, y, y_mask, cost):
     zipped_grads = [theano.shared(q.get_value() * numpy_floatX(0.), name='%s_grad' % k)
-                    for k, q in tparams.iteritems()]
+                    for k, q in tparams.items()]
     running_grads = [theano.shared(q.get_value() * numpy_floatX(0.), name='%s_rgrad' % k)
-                     for k, q in tparams.iteritems()]
+                     for k, q in tparams.items()]
     running_grads2 = [theano.shared(q.get_value() * numpy_floatX(0.), name='%s_rgrad2' % k)
-                      for k, q in tparams.iteritems()]
+                      for k, q in tparams.items()]
 
     zgup = [(zg, g) for zg, g in zip(zipped_grads, grads)]
     rgup = [(rg, 0.95 * rg + 0.05 * g) for rg, g in zip(running_grads, grads)]
@@ -204,7 +209,7 @@ def rmsprop(lr, tparams, grads, p, p_mask, x, x_mask, y, y_mask, cost):
                                     name='rmsprop_f_grad_shared')
 
     updir = [theano.shared(q.get_value() * numpy_floatX(0.), name='%s_updir' % k)
-             for k, q in tparams.iteritems()]
+             for k, q in tparams.items()]
     updir_new = [(ud, 0.9 * ud - 1e-4 * zg / tensor.sqrt(rg2 - rg ** 2 + 1e-4))
                  for ud, zg, rg, rg2 in zip(updir, zipped_grads, running_grads,
                                             running_grads2)]
@@ -219,11 +224,11 @@ def rmsprop(lr, tparams, grads, p, p_mask, x, x_mask, y, y_mask, cost):
 
 def adadelta(lr, tparams, grads, p, p_mask, x, x_mask, y, y_mask, cost):
     zipped_grads = [theano.shared(q.get_value() * numpy_floatX(0.), name='%s_grad' % k)
-                    for k, q in tparams.iteritems()]
+                    for k, q in tparams.items()]
     running_up2 = [theano.shared(q.get_value() * numpy_floatX(0.),name='%s_rup2' % k)
-                   for k, q in tparams.iteritems()]
+                   for k, q in tparams.items()]
     running_grads2 = [theano.shared(q.get_value() * numpy_floatX(0.),name='%s_rgrad2' % k)
-                      for k, q in tparams.iteritems()]
+                      for k, q in tparams.items()]
 
     zgup = [(zg, g) for zg, g in zip(zipped_grads, grads)]
     rg2up = [(rg2, 0.95 * rg2 + 0.05 * (g ** 2))
@@ -524,7 +529,7 @@ def build_model(tparams, options):
 def train_lstm(
         dim_proj=128,  # LSTM number of hidden units.
         patience=10,  # Number of epoch to wait before early stop if no progress
-        max_epochs=5000,  # The maximum number of epoch to run
+        max_epochs=10,  # The maximum number of epoch to run
         dispFreq=10,  # Display to stdout the training progress every N updates
         decay_c=0.,  # Weight decay for the classifier applied to the U weights.
         lrate=0.01,  # Learning rate for sgd (not used for adadelta and rmsprop)
@@ -546,16 +551,30 @@ def train_lstm(
         reload_model=None,  # Path to a saved model we want to start from.
         datapath='data.pkl.gz',
 ):
+    
     model_options = locals().copy()
     load_data, prepare_data = get_dataset(dataset)
 
-    print 'Loading data'
+    print ('Loading data')
     train, valid, test = load_data(path=datapath)
 
-    model_options['data_dim'] = train[0][0][0].shape[0]  # data_dim = 2, i.e (x,y)
+    print("train.len = {}".format(len(train)))
+    print("type(train[0]) = {}".format(type(train[0])))
+    print("type(train[0][0]) = {}".format(type(train[0][0])))
+    print("type(train[0][0][0]) = {}".format(type(train[0][0][0])))
+    print("train[0][0][0].shape[0] = {}".format(train[0][0][0].shape[0]))
+    print("type(train[0][0][0]) = {}".format(type(train[0][0][0])))
 
-    print 'Building model'
+    model_options['data_dim'] = train[0][0][0].shape[0]  # data_dim = 2, i.e (x,y)
+    print("train[0][0][0].shape[0] = {}".format(train[0][0][0].shape[0]))
+
+    print ('\nBuilding model')
     params = init_params(model_options)
+
+    print("dataset: {}, datapath = {}".format(dataset, datapath))
+    print("\ntype(params): {}, type(model_options) = {}".format(type(params), type(model_options)))
+    print("\n model_options['data_dim'] = {}".format(model_options['data_dim']))
+    #print("\n params = {}".format(params))
 
     if reload_model:
         load_params(reload_model, params)
@@ -565,7 +584,7 @@ def train_lstm(
     (p, p_mask, x, x_mask, y, y_mask, preds, cost, f_encode, f_decode, f_probi) = build_model(tparams, model_options)
     f_cost = theano.function([p, p_mask, x, x_mask, y, y_mask], cost, name='f_cost')
 
-    grads = tensor.grad(theano.gradient.grad_clip(cost, -2.0, 2.0), wrt=tparams.values())
+    grads = tensor.grad(theano.gradient.grad_clip(cost, -2.0, 2.0), wrt=list(tparams.values()))
     # grads = tensor.grad(cost, wrt=tparams.values())
     f_grad = theano.function([p, p_mask, x, x_mask, y, y_mask], grads, name='f_grad')
 
@@ -574,14 +593,14 @@ def train_lstm(
 
     # generation
 
-    print 'Optimization'
+    print ('Optimization')
 
     kf_valid = get_minibatches_idx(len(valid), valid_batch_size)
     kf_test = get_minibatches_idx(len(test), valid_batch_size)
 
-    print "%d train examples" % len(train)
-    print "%d valid examples" % len(valid)
-    print "%d test examples" % len(test)
+    print ("%d train examples" % len(train))
+    print ("%d valid examples" % len(valid))
+    print ("%d test examples" % len(test))
 
     history_err = []
     best_p = None
@@ -601,7 +620,7 @@ def train_lstm(
     test_err = 0.0
 
     try:
-        for eidx in xrange(max_epochs):
+        for eidx in range(max_epochs):
             n_samples = 0
 
             kf = get_minibatches_idx(len(train), batch_size, shuffle=True)
@@ -619,15 +638,15 @@ def train_lstm(
                 f_update(lrate)
 
                 if numpy.isnan(cost) or numpy.isinf(cost):
-                    print 'NaN detected'
+                    print ('NaN detected')
                     return 1., 1., 1.
 
                 if numpy.mod(uidx, dispFreq) == 0:
-                    print 'Epoch ', eidx, 'Update ', uidx, 'Cost ', cost
+                    print ('Epoch ', eidx, 'Update ', uidx, 'Cost ', cost)
 
                 if saveto and numpy.mod(uidx, saveFreq) == 0:
-                    print 'Saving...',
-                    sys.stdout.flush()
+                    print ('Saving...',
+                    sys.stdout.flush())
 
                     if best_p is not None:
                         params = best_p
@@ -635,7 +654,7 @@ def train_lstm(
                         params = unzip(tparams)
                     numpy.savez(saveto, history_err=history_err, **params)
                     pkl.dump(model_options, open('%s.pkl' % saveto, 'wb'), -1)
-                    print 'Done'
+                    print ('Done')
                     sys.stdout.flush()
 
                 if numpy.mod(uidx, validFreq) == 0:
@@ -663,19 +682,19 @@ def train_lstm(
                     if len(history_err) > patience and valid_err >= numpy.array(history_err)[:-patience, 0].min():
                         bad_counter += 1
                         if bad_counter > patience:
-                            print 'Early Stop!'
+                            print ('Early Stop!')
                             estop = True
                             break
                     sys.stdout.flush()
 
-            print 'Seen %d samples' % n_samples
+            print ('Seen %d samples' % n_samples)
             sys.stdout.flush()
 
             if estop:
                 break
 
     except KeyboardInterrupt:
-        print "Training interrupted"
+        print ("Training interrupted")
 
     end_time = time.time()
     if best_p is not None:
@@ -698,9 +717,9 @@ def train_lstm(
         numpy.savez(saveto, train_err=train_err, valid_err=valid_err, test_err=test_err,
                     history_err=history_err,
                     **best_p)
-    print 'The code run for %d epochs, with %f sec/epochs' % ((eidx + 1), (end_time - start_time) / (1. * (eidx + 1)))
-    print >> sys.stderr, ('Training took %.1fs' % (end_time - start_time))
-
+    print ('The code run for %d epochs, with %f sec/epochs' % ((eidx + 1), (end_time - start_time) / (1. * (eidx + 1))))
+    #print >> sys.stderr, ('Training took %.1fs' % (end_time - start_time))
+    print('Training took %.1fs' % (end_time - start_time), file=sys.stderr)
     return train_err, valid_err, test_err
 
 
@@ -709,7 +728,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--dim', type=int, default=256, help='dimension')
     parser.add_argument('-b', '--batch', type=int, default=128, help='batch size')
     parser.add_argument('-l', '--lrate', type=float, default=1.0, help='learning rate')
-    parser.add_argument('-e', '--epochs', type=int, default=1000, help='max training epochs')
+    parser.add_argument('-e', '--epochs', type=int, default=10, help='max training epochs')
     parser.add_argument('-p', '--patience', type=int, default=50, help='patience for early stopping')
     parser.add_argument('-o', '--optimizer', choices=['sgd', 'rmsprop', 'adadelta'], default='rmsprop', help='optimizer')
     parser.add_argument('-r', '--reload', default=False, help='reload model')
@@ -742,5 +761,6 @@ if __name__ == '__main__':
         optimizer=opt,
         saveto=args.saveto,
         datapath=args.datapath,
-        reload_model=args.reload,
+        reload_model=None
+        #reload_model=args.reload,
     )
