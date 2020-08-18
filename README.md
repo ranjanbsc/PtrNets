@@ -12,7 +12,7 @@ cd /content/PtrNets/pointer/
 !python misc/convex_hull.py ch.pkl.gz
 
 
-Step2: Run ponternet program like below
+Step2: Run pointernet program as follows:
 
 
 !python ptrnets.py ch '/content/PtrNets/pointer/ch.pkl.gz' '/content/PtrNets/pointer/'
