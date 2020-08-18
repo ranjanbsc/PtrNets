@@ -4,7 +4,7 @@ This has been forked from https://github.com/vshallc/PtrNets and modified to run
 
 Step1: Create dataset for convex hull
 
-!git clone https://github.com/vshallc/PtrNets.git
+!git clone https://github.com/ranjanbsc/PtrNets.git
 
 
 cd /content/PtrNets/pointer/
